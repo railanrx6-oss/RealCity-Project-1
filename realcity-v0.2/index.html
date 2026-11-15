@@ -1,1 +1,178 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RealCity Project 0.2</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10151e;color:#fff;font-family:Arial,sans-serif}
+header{padding:16px;background:#192333;border-bottom:1px solid #34445b}
+h1{font-size:21px;margin:0}
+small{color:#a9bbd2}
+main{padding:14px;max-width:1000px;margin:auto}
+.panel{background:#1b2636;padding:14px;border-radius:12px;margin-bottom:13px}
+input,select,button{padding:12px;border:0;border-radius:8px;margin:4px 0;font-size:14px}
+input,select{background:#101923;color:white;max-width:100%;width:100%}
+button{background:#2878db;color:white;font-weight:bold}
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tools button{background:#34445b}
+canvas{width:100%;background:#9aab91;border-radius:10px;touch-action:manipulation}
+#status{color:#9fceff;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+<h1>🏙️ RealCity Project 0.2</h1>
+<small>Editor de cidades para projetos de mapas</small>
+</header>
+<main>
+<section class="panel">
+<h3>Nova cidade</h3>
+<input id="city" placeholder="Nome da cidade">
+<select id="type">
+<option value="fictional">Cidade fictícia</option>
+<option value="real">Inspirada em cidade real</option>
+</select>
+<select id="quality">
+<option value="low">Qualidade baixa</option>
+<option value="medium" selected>Qualidade média</option>
+<option value="high">Qualidade alta</option>
+</select>
+<button onclick="generate()">✨ Gerar cidade inicial</button>
+</section>
+
+<section class="panel">
+<h3>Construção manual</h3>
+<div class="tools">
+<button onclick="tool='road'">🛣️ Rua</button>
+<button onclick="tool='block'">🏢 Quadra</button>
+<button onclick="tool='house'">🏠 Casa</button>
+<button onclick="tool='tree'">🌳 Árvore</button>
+<button onclick="tool='stop'">🚏 Ponto</button>
+<button onclick="tool='erase'">🧹 Apagar</button>
+</div>
+<p id="status">Ferramenta selecionada: rua</p>
+</section>
+
+<section class="panel">
+<h3>Mapa da cidade</h3>
+<canvas id="map" width="900" height="560"></canvas>
+<p><small>Toque no mapa para adicionar elementos.</small></p>
+<button onclick="downloadProject()">💾 Salvar projeto JSON</button>
+<button onclick="clearMap()">Limpar mapa</button>
+</section>
+
+<section class="panel">
+<h3>Biblioteca de referências</h3>
+<p><small>Escolha imagens para consultar durante a construção.</small></p>
+<input type="file" id="images" accept="image/png,image/jpeg,image/webp" multiple>
+<div id="preview"></div>
+</section>
+
+<section class="panel">
+<h3>Inteligência artificial</h3>
+<input id="prompt" placeholder="Ex.: cidade brasileira com ruas e bairros">
+<button onclick="suggest()">Criar planejamento</button>
+<p id="suggestion"></p>
+<small>A geração por IA ainda precisa de integração com um serviço de inteligência artificial.</small>
+</section>
+<p id="status2"></p>
+</main>
+
+<script>
+const canvas=document.getElementById('map');
+const ctx=canvas.getContext('2d');
+let tool='road';
+let objects=[];
+
+function draw(){
+ctx.fillStyle='#9aab91';
+ctx.fillRect(0,0,900,560);
+ctx.strokeStyle='#82977b';
+ctx.lineWidth=1;
+for(let x=0;x<900;x+=40){
+ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,560);ctx.stroke();
+}
+for(let y=0;y<560;y+=40){
+ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(900,y);ctx.stroke();
+}
+objects.forEach(o=>{
+if(o.type==='road'){
+ctx.fillStyle='#454b52';
+ctx.fillRect(o.x-45,o.y-9,90,18);
+ctx.strokeStyle='#eee';ctx.setLineDash([8,8]);
+ctx.beginPath();ctx.moveTo(o.x-40,o.y);ctx.lineTo(o.x+40,o.y);ctx.stroke();
+ctx.setLineDash([]);
+}
+if(o.type==='block'||o.type==='house'){
+ctx.fillStyle=o.type==='house'?'#d6a16e':'#b6b9bb';
+ctx.fillRect(o.x-18,o.y-18,36,36);
+ctx.strokeStyle='#555';ctx.strokeRect(o.x-18,o.y-18,36,36);
+}
+if(o.type==='tree'){
+ctx.fillStyle='#245b35';ctx.beginPath();ctx.arc(o.x,o.y,13,0,Math.PI*2);ctx.fill();
+}
+if(o.type==='stop'){
+ctx.fillStyle='#e9d33c';ctx.fillRect(o.x-13,o.y-15,26,30);
+ctx.fillStyle='#222';ctx.font='bold 16px Arial';ctx.fillText('P',o.x-5,o.y+6);
+}
+});
+}
+canvas.addEventListener('click',e=>{
+const r=canvas.getBoundingClientRect();
+const x=(e.clientX-r.left)*canvas.width/r.width;
+const y=(e.clientY-r.top)*canvas.height/r.height;
+if(tool==='erase'){
+let i=objects.findIndex(o=>Math.hypot(o.x-x,o.y-y)<30);
+if(i>=0)objects.splice(i,1);
+}else objects.push({type:tool,x,y});
+draw();
+});
+function generate(){
+objects=[];
+for(let x=100;x<850;x+=150){
+objects.push({type:'road',x,y:280});
+}
+for(let y=100;y<500;y+=120){
+objects.push({type:'road',x:450,y});
+}
+for(let x=150;x<800;x+=100){
+objects.push({type:'house',x,y:170});
+objects.push({type:'tree',x,y:390});
+}
+draw();
+document.getElementById('status2').textContent='Cidade inicial criada! Continue editando manualmente.';
+}
+function clearMap(){objects=[];draw();}
+function suggest(){
+const p=document.getElementById('prompt').value.trim();
+document.getElementById('suggestion').textContent=p?
+'Planejamento inicial: '+p+'. Escolha as ferramentas e construa seu mapa.':
+'Digite uma descrição da cidade primeiro.';
+}
+function downloadProject(){
+const data={
+name:document.getElementById('city').value||'Minha cidade',
+type:document.getElementById('type').value,
+quality:document.getElementById('quality').value,
+objects:objects,
+format:'RealCity Project 0.2 - projeto inicial'
+};
+const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+const a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download='realcity-project.json';
+a.click();
+URL.revokeObjectURL(a.href);
+}
+document.getElementById('images').addEventListener('change',e=>{
+document.getElementById('preview').textContent=
+e.target.files.length+' imagem(ns) selecionada(s).';
+});
+draw();
+</script>
+</body>
+</html>
+
