@@ -31,7 +31,7 @@ jobs:
       - name: Extrair projeto
         run: |
           mkdir source
-          unzip -q RealCity_Project_Alpha_0_1_source.zip -d source
+          unzip -q "RealCity_Project_Alpha_0_1_source (4).zip" -d source
           PROJECT_DIR=$(dirname "$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)")
           echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
 
