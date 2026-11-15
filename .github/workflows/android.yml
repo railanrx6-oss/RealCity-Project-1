@@ -1,0 +1,45 @@
+
+name: Gerar APK RealCity
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/android.yml'
+      - 'RealCity_Project_Alpha_0_1_source.zip'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar projeto
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Extrair projeto
+        run: |
+          mkdir source
+          unzip -q RealCity_Project_Alpha_0_1_source.zip -d source
+          PROJECT_DIR=$(dirname "$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+
+      - name: Compilar APK
+        run: gradle -p "$PROJECT_DIR" assembleDebug
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RealCity-Project-APK
+          path: source/**/build/outputs/apk/debug/*.apk
