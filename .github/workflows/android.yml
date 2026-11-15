@@ -34,7 +34,36 @@ jobs:
           unzip -q "RealCity_Project_Alpha_0_1_source (4).zip" -d source
           PROJECT_DIR=$(dirname "$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)")
           echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          
+      - name: Corrigir compatibilidade Java e Kotlin
+        run: |
+          python3 - "$PROJECT_DIR/app/build.gradle" <<'PY'
+          import sys
+          from pathlib import Path
 
+          p = Path(sys.argv[1])
+          s = p.read_text()
+
+          if "sourceCompatibility JavaVersion.VERSION_17" not in s:
+              pos = s.rfind("}")
+              s = s[:pos] + """
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+              """ + s[pos:]
+
+          if "jvmTarget = '17'" not in s:
+              pos = s.rfind("}")
+              s = s[:pos] + """
+              kotlinOptions {
+                  jvmTarget = '17'
+              }
+              """ + s[pos:]
+
+          p.write_text(s)
+          print("Java e Kotlin configurados para 17")
+          PY
       - name: Compilar APK
         run: gradle -p "$PROJECT_DIR" assembleDebug
 
